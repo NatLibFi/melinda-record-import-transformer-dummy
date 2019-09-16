@@ -27,19 +27,30 @@
 */
 
 export default () => {
-	return async record => {
-		if (record.get(/^FOO$/).length > 0) {
+	return async (records, fix, validateFixes) => {
+		const opts = fix ? {fix, validateFixes} : {fix};
+
+		const validate = record => {
+			if (record.get(/^FOO$/).length > 0) {
+				return {
+					record,
+					valid: false,
+					report: ['Invalid as requested']
+				};
+			}
+
 			return {
 				record,
-				valid: false,
-				report: ['Invalid as requested']
+				valid: true,
+				report: []
 			};
-		}
-
-		return {
-			record,
-			valid: true,
-			report: []
 		};
+
+		const results = await Promise.all(records.map(r => validate(r, opts)));
+		return results.map(({record, valid, report}) => ({
+			record,
+			failed: valid === false,
+			messages: report
+		}));
 	};
 };
