@@ -27,9 +27,9 @@
 */
 
 export default () => {
-	return async (records, fix, validateFixes) => {
+	return async (records, fix, validateFixes, Emitter) => {
 		const opts = fix ? {fix, validateFixes} : {fix};
-
+		Emitter.emit('log', `Dummy transformer got validation opts: ${opts}`);
 		const validate = record => {
 			if (record.get(/^FOO$/).length > 0) {
 				return {
@@ -46,7 +46,7 @@ export default () => {
 			};
 		};
 
-		const results = await Promise.all(records.map(r => validate(r, opts)));
+		const results = await Promise.all(records.map(r => validate(r)));
 		return results.map(({record, valid, report}) => ({
 			record,
 			failed: valid === false,

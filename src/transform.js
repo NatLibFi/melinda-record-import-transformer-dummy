@@ -26,54 +26,72 @@
 *
 */
 
-import getStream from 'get-stream';
+import {chain} from 'stream-chain';
+import {parser} from 'stream-json';
+import {streamArray} from 'stream-json/streamers/StreamArray';
 import {MarcRecord} from '@natlibfi/marc-record';
+import createValidator from './validate';
+import moment from 'moment';
 
-export default async function (stream) {
+export default async function (stream, Emitter, validate = true, fix = true) {
 	MarcRecord.setValidationOptions({subfieldValues: false});
-	const config = await getConfig();
+	let pipeline;
+	let counter = 0;
+	const defaults = {
+		records: new Array(5).fill(true)
+	};
 
-	if (config.fail) {
-		throw new Error('Failing as requested');
+	const validator = await createValidator();
+	Emitter.emit('log', 'Starting to send recordEvents');
+	if (stream) {
+		pipeline = chain([
+			stream,
+			parser(),
+			streamArray()
+		]);
+
+		pipeline.on('data', record => {
+			convertRecord(record.value, validate, fix, validator, counter);
+			counter++;
+		});
+		pipeline.on('end', () => Emitter.emit('counter', counter));
+	} else {
+		Emitter.emit('log', `Dummy logger did not get stream. Pushing ${defaults.leanght} dummy records from defaults`);
+		defaults.array.forEach(record => {
+			convertRecord(record, validate, fix, validator, counter);
+		});
+		Emitter.emit('counter', defaults.leanght);
 	}
 
-	return config.records.map((valid, index) => {
-		const record = new MarcRecord({
+	async function convertRecord(inputRecod, validate, fix, validator) {
+		const creationDate = moment().format('YYMMDD');
+		let record = new MarcRecord({
 			leader: '00000ngm a22005774i 4500',
 			fields: [
 				{
 					tag: '008',
-					value: '000000s2018    fi ||| g^    |    v|mul|c'
+					value: `${creationDate}    fi ||| g^    |    v|mul|c`
 				},
 				{
 					tag: '024',
-					subfields: [{code: 'a', value: `000000${index}`}]
+					subfields: [{code: 'a', value: `000000${counter}`}]
 				},
 				{
 					tag: '245',
-					subfields: [{code: 'a', value: `foobar${index}`}]
+					subfields: [{code: 'a', value: `foobar${counter}`}]
 				}
 			]
 		});
 
-		if (valid) {
-			return record;
-		}
-
 		record.appendField({tag: 'FOO', value: 'bar'});
-		return record;
-	});
 
-	async function getConfig() {
-		const data = await getStream(stream);
-		const defaults = {
-			records: new Array(5).fill(true)
-		};
-
-		if (data) {
-			return {...defaults, ...JSON.parse(data)};
+		if (validate || fix) {
+			record = await validator(record, validate, fix, Emitter);
+		} else {
+			// No validation or fix = all succes!
+			record = {failed: false, record: {...record}};
 		}
 
-		return defaults;
+		await Emitter.emit('record', record);
 	}
 }

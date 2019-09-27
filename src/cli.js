@@ -27,9 +27,10 @@
 */
 
 import transform from './transform';
-import createValidator from './validate';
 import {Transformer} from '@natlibfi/melinda-record-import-commons';
-import moment from 'moment';
+import {EventEmitter} from 'events';
+
+class TransformDummyCLIEmitter extends EventEmitter {}
 
 const {runCLI} = Transformer;
 
@@ -42,42 +43,13 @@ async function run() {
 			{option: 'v', conf: {alias: 'validate', default: false, type: 'boolean', describe: 'Validate records'}},
 			{option: 'f', conf: {alias: 'fix', default: false, type: 'boolean', describe: 'Validate & fix records'}}
 		],
-		callback: startTransform
+		callback: transformCallback
 	};
 	runCLI(transformerSettings);
 
-	async function startTransform({stream, args: {validate, fix, recordsOnly}, spinner, handleRecordsOutput}) {
-		const records = await transformStream(stream, validate, fix);
-
-		if (validate || fix) {
-			spinner.succeed();
-			spinner.start('Validating records');
-
-			const invalidCount = records.filter(r => r.failed).length;
-			const validCount = records.length - invalidCount;
-			spinner.succeed(`Validating records (Valid: ${validCount}, invalid: ${invalidCount})`);
-
-			if (recordsOnly) {
-				console.error(`Excluding ${records.filter(r => r.failed).length} failed records`);
-				handleRecordsOutput(records.filter(r => !r.failed).map(r => r.record));
-			} else {
-				console.log(JSON.stringify(records.map(r => {
-					return {record: r.record.toObject(), timestamp: moment(), ...r};
-				}), undefined, 2));
-			}
-		} else {
-			spinner.succeed();
-			handleRecordsOutput(records);
-		}
-	}
-
-	async function transformStream(stream, argsValidate, argsFix) {
-		const records = await transform(stream);
-		if (argsValidate || argsFix) {
-			const validate = await createValidator();
-			return validate(records, argsFix, argsValidate);
-		}
-
-		return records;
+	async function transformCallback({stream, args: {validate, fix}}) {
+		const Emitter = new TransformDummyCLIEmitter();
+		transform(stream, Emitter, validate, fix);
+		return Emitter;
 	}
 }
