@@ -30,7 +30,7 @@ import transform from './transform';
 import {Transformer} from '@natlibfi/melinda-record-import-commons';
 import {EventEmitter} from 'events';
 
-class TransformDummyEmitter extends EventEmitter {}
+class TransformEmitter extends EventEmitter {}
 
 const {startTransformer} = Transformer;
 
@@ -40,7 +40,7 @@ async function run() {
 	startTransformer(transformCallback);
 
 	function transformCallback(stream) {
-		const Emitter = new TransformDummyEmitter();
+		const Emitter = new TransformEmitter();
 		transform(stream, Emitter);
 		return Emitter;
 	}

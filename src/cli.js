@@ -30,7 +30,7 @@ import transform from './transform';
 import {Transformer} from '@natlibfi/melinda-record-import-commons';
 import {EventEmitter} from 'events';
 
-class TransformDummyCLIEmitter extends EventEmitter {}
+class TransformCLIEmitter extends EventEmitter {}
 
 const {runCLI} = Transformer;
 
@@ -38,7 +38,7 @@ run();
 
 async function run() {
 	const transformerSettings = {
-		name: 'melinda-record-import-transformer-dummy',
+		name: 'melinda-record-import-transformer-helmet',
 		yargsOptions: [
 			{option: 'v', conf: {alias: 'validate', default: false, type: 'boolean', describe: 'Validate records'}},
 			{option: 'f', conf: {alias: 'fix', default: false, type: 'boolean', describe: 'Validate & fix records'}}
@@ -47,8 +47,8 @@ async function run() {
 	};
 	runCLI(transformerSettings);
 
-	async function transformCallback({stream, args: {validate, fix}}) {
-		const Emitter = new TransformDummyCLIEmitter();
+	function transformCallback({stream, args: {validate, fix}}) {
+		const Emitter = new TransformCLIEmitter();
 		transform(stream, Emitter, validate, fix);
 		return Emitter;
 	}

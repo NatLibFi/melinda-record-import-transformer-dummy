@@ -42,7 +42,8 @@ export default async function (stream, Emitter, validate = true, fix = true) {
 	};
 
 	const validator = await createValidator();
-	Emitter.emit('log', 'Starting to send recordEvents');
+	Emitter.emit('log', 'Dummy transformer is starting to send recordEvents');
+	Emitter.emit('log', `Dummy transformer got validation opts: validate: ${validate}, fix: ${fix}`);
 	if (stream) {
 		pipeline = chain([
 			stream,
@@ -63,7 +64,7 @@ export default async function (stream, Emitter, validate = true, fix = true) {
 		Emitter.emit('counter', defaults.leanght);
 	}
 
-	async function convertRecord(inputRecod, validate, fix, validator) {
+	async function convertRecord(inputRecord, validate, fix, validator) {
 		const creationDate = moment().format('YYMMDD');
 		let record = new MarcRecord({
 			leader: '00000ngm a22005774i 4500',
@@ -83,7 +84,9 @@ export default async function (stream, Emitter, validate = true, fix = true) {
 			]
 		});
 
-		record.appendField({tag: 'FOO', value: 'bar'});
+		if (inputRecord === false) {
+			record.appendField({tag: 'FOO', value: 'bar'});
+		}
 
 		if (validate || fix) {
 			record = await validator(record, validate, fix, Emitter);
