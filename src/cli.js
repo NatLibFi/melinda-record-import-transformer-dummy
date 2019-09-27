@@ -38,7 +38,7 @@ run();
 
 async function run() {
 	const transformerSettings = {
-		name: 'melinda-record-import-transformer-helmet',
+		name: 'melinda-record-import-transformer-dummy',
 		yargsOptions: [
 			{option: 'v', conf: {alias: 'validate', default: false, type: 'boolean', describe: 'Validate records'}},
 			{option: 'f', conf: {alias: 'fix', default: false, type: 'boolean', describe: 'Validate & fix records'}}
