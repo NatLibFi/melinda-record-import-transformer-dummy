@@ -32,56 +32,63 @@ import {streamArray} from 'stream-json/streamers/StreamArray';
 import {MarcRecord} from '@natlibfi/marc-record';
 import validator from './validate';
 import moment from 'moment';
+import {EventEmitter} from 'events';
 
-export default async function (stream, Emitter, validate = true, fix = true) {
+class TransformEmitter extends EventEmitter {}
+
+export default function (stream, {validate = true, fix = true}) {
 	MarcRecord.setValidationOptions({subfieldValues: false});
-	let pipeline;
-	let counter = 0;
-	const defaults = {
-		records: new Array(5).fill(true)
-	};
-	let promises = [];
+	const Emitter = new TransformEmitter();
 
-	try {
-		if (stream) {
-			pipeline = chain([
-				stream,
-				parser(),
-				streamArray()
-			]);
+	readStream(stream);
+	return Emitter;
 
-			pipeline.on('data', async data => {
-				counter++;
-				promises.push(transform(data.value));
-				async function transform(value) {
-					const result = await convertRecord(value, validate, fix);
-					Emitter.emit('record', result);
-				}
-			});
-			pipeline.on('end', async () => {
-				console.log(`: Handled ${counter} recordEvents`);
+	async function readStream(stream) {
+		try {
+			let promises = [];
+
+			if (stream) {
+				const pipeline = chain([
+					stream,
+					parser(),
+					streamArray()
+				]);
+
+				pipeline.on('data', async data => {
+					promises.push(transform(data.value));
+					async function transform(value) {
+						const result = await convertRecord(value);
+						Emitter.emit('record', result);
+					}
+				});
+				pipeline.on('end', async () => {
+					console.log(`: Handled ${promises.length} recordEvents`);
+					await Promise.all(promises);
+					Emitter.emit('end', promises.length);
+				});
+			} else {
+				const defaults = {
+					records: new Array(5).fill(true)
+				};
+
+				console.log('debug', `Dummy logger did not get stream. Pushing ${defaults.leanght} dummy records from defaults`);
+				defaults.array.forEach(data => {
+					promises.push(transform(data));
+					async function transform(value) {
+						const result = await convertRecord(value);
+						Emitter.emit('record', result);
+					}
+				});
 				await Promise.all(promises);
-				Emitter.emit('end', counter);
-			});
-		} else {
-			console.log('debug', `Dummy logger did not get stream. Pushing ${defaults.leanght} dummy records from defaults`);
-			defaults.array.forEach(data => {
-				counter++;
-				promises.push(transform(data));
-				async function transform(value) {
-					const result = await convertRecord(value, validate, fix);
-					Emitter.emit('record', result);
-				}
-			});
-			await Promise.all(promises);
-			Emitter.emit('end', counter);
+				Emitter.emit('end', promises.length);
+			}
+		} catch (err) {
+			Emitter.emit('error', err);
 		}
-	} catch (err) {
-		Emitter.emit('error', err);
 	}
 
 	// If inputData is boolean false output record is failed record
-	async function convertRecord(inputData, validate, fix) {
+	async function convertRecord(inputData) {
 		const creationDate = moment().format('YYMMDD');
 		let record = new MarcRecord({
 			leader: '00000ngm a22005774i 4500',
@@ -92,11 +99,11 @@ export default async function (stream, Emitter, validate = true, fix = true) {
 				},
 				{
 					tag: '024',
-					subfields: [{code: 'a', value: `000000${counter}`}]
+					subfields: [{code: 'a', value: '000000'}]
 				},
 				{
 					tag: '245',
-					subfields: [{code: 'a', value: `foobar${counter}`}]
+					subfields: [{code: 'a', value: 'foobar'}]
 				}
 			]
 		});
@@ -106,6 +113,7 @@ export default async function (stream, Emitter, validate = true, fix = true) {
 		}
 
 		if (validate === true || fix === true) {
+			// Validation works only if inputData is type boolean: true or false.
 			return validator(record, validate, fix);
 		}
 
