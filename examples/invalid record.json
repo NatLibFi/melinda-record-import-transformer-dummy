@@ -1,0 +1,42 @@
+{
+  "record": {
+    "_validationOptions": {},
+    "leader": "00000ngm a22005774i 4500",
+    "fields": [
+      {
+        "tag": "008",
+        "value": "191025    fi ||| g^    |    v|mul|c"
+      },
+      {
+        "tag": "024",
+        "subfields": [
+          {
+            "code": "a",
+            "value": "000000"
+          }
+        ],
+        "ind1": " ",
+        "ind2": " "
+      },
+      {
+        "tag": "245",
+        "subfields": [
+          {
+            "code": "a",
+            "value": "foobar"
+          }
+        ],
+        "ind1": " ",
+        "ind2": " "
+      },
+      {
+        "tag": "FOO",
+        "value": "bar"
+      }
+    ]
+  },
+  "failed": true,
+  "messages": [
+    "Invalid as requested"
+  ]
+}
