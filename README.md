@@ -2,12 +2,6 @@
 
 Dummy record transformer for the Melinda record batch import system. Consumes records as represented by Helmet's [Sierra ILS](https://sandbox.iii.com/iii/sierra-api/swagger/index.html)
 
-## License and copyright
-
-Copyright (c) 2018 **University Of Helsinki (The National Library Of Finland)**
-
-This project's source code is licensed under the terms of **GNU Affero General Public License Version 3** or any later version.
-
 ## Usage
 Default options: validated: true and fix: true
 Usage of [@natlibfi/melinda-record-import-cli](https://www.npmjs.com/package/@natlibfi/melinda-record-import-cli) is recommended
@@ -21,3 +15,9 @@ Boolean values will generate valid and invalid records.
 Obect type imput will be always converted to valid record.
 
 Examples can be found in the folder
+
+## License and copyright
+
+Copyright (c) 2018 **University Of Helsinki (The National Library Of Finland)**
+
+This project's source code is licensed under the terms of **GNU Affero General Public License Version 3** or any later version.
