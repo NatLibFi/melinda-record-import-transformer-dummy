@@ -44,46 +44,49 @@ export default function (stream, {validate = true, fix = true}) {
 	return Emitter;
 
 	async function readStream(stream) {
+		let promises = [];
+
 		try {
-			let promises = [];
+			const pipeline = chain([
+				stream,
+				parser(),
+				streamArray()
+			]);
 
-			if (stream) {
-				const pipeline = chain([
-					stream,
-					parser(),
-					streamArray()
-				]);
+			pipeline.on('data', async data => {
+				promises.push(transform(data.value));
+				async function transform(value) {
+					const result = await convertRecord(value);
+					Emitter.emit('record', result);
+				}
+			});
+			pipeline.on('end', async () => {
+				console.log(`: Handled ${promises.length} recordEvents`);
+				if (promises.length < 1) {
+					await runDefault();
+				}
 
-				pipeline.on('data', async data => {
-					promises.push(transform(data.value));
-					async function transform(value) {
-						const result = await convertRecord(value);
-						Emitter.emit('record', result);
-					}
-				});
-				pipeline.on('end', async () => {
-					console.log(`: Handled ${promises.length} recordEvents`);
-					await Promise.all(promises);
-					Emitter.emit('end', promises.length);
-				});
-			} else {
-				const defaults = {
-					records: new Array(5).fill(true)
-				};
-
-				console.log('debug', `Dummy logger did not get stream. Pushing ${defaults.leanght} dummy records from defaults`);
-				defaults.array.forEach(data => {
-					promises.push(transform(data));
-					async function transform(value) {
-						const result = await convertRecord(value);
-						Emitter.emit('record', result);
-					}
-				});
 				await Promise.all(promises);
 				Emitter.emit('end', promises.length);
-			}
+			});
 		} catch (err) {
 			Emitter.emit('error', err);
+		}
+
+		async function runDefault() {
+			const defaults = await fill(5);
+			console.log('debug', `Dummy logger did not get stream. Pushing ${defaults.length} dummy records from defaults`);
+			defaults.forEach(data => {
+				promises.push(transform(data));
+				async function transform(value) {
+					const result = await convertRecord(value);
+					Emitter.emit('record', result);
+				}
+			});
+
+			async function fill(amount) {
+				return new Array(amount).fill({data: true});
+			}
 		}
 	}
 
