@@ -26,8 +26,7 @@
 *
 */
 
-import transformCallback from './transform';
-import createValidator from './validate';
+import transform from './transform';
 import {Transformer} from '@natlibfi/melinda-record-import-commons';
 
 const {runCLI} = Transformer;
@@ -35,6 +34,13 @@ const {runCLI} = Transformer;
 run();
 
 async function run() {
-	const validateCallback = createValidator();
-	runCLI({name: 'melinda-record-import-transformer-dummy', transformCallback, validateCallback});
+	const transformerSettings = {
+		name: 'melinda-record-import-transformer-dummy',
+		yargsOptions: [
+			{option: 'v', conf: {alias: 'validate', default: false, type: 'boolean', describe: 'Validate records'}},
+			{option: 'f', conf: {alias: 'fix', default: false, type: 'boolean', describe: 'Validate & fix records'}}
+		],
+		callback: transform
+	};
+	runCLI(transformerSettings);
 }

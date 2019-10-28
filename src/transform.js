@@ -26,54 +26,101 @@
 *
 */
 
-import getStream from 'get-stream';
+import {chain} from 'stream-chain';
+import {parser} from 'stream-json';
+import {streamArray} from 'stream-json/streamers/StreamArray';
 import {MarcRecord} from '@natlibfi/marc-record';
+import validator from './validate';
+import moment from 'moment';
+import {EventEmitter} from 'events';
 
-export default async function (stream) {
+class TransformEmitter extends EventEmitter {}
+
+export default function (stream, {validate = true, fix = true}) {
 	MarcRecord.setValidationOptions({subfieldValues: false});
-	const config = await getConfig();
+	const Emitter = new TransformEmitter();
 
-	if (config.fail) {
-		throw new Error('Failing as requested');
+	readStream(stream);
+	return Emitter;
+
+	async function readStream(stream) {
+		let promises = [];
+
+		try {
+			const pipeline = chain([
+				stream,
+				parser(),
+				streamArray()
+			]);
+
+			pipeline.on('data', async data => {
+				promises.push(transform(data.value));
+				async function transform(value) {
+					const result = await convertRecord(value);
+					Emitter.emit('record', result);
+				}
+			});
+			pipeline.on('end', async () => {
+				console.log(`: Handled ${promises.length} recordEvents`);
+				if (promises.length < 1) {
+					await runDefault();
+				}
+
+				await Promise.all(promises);
+				Emitter.emit('end', promises.length);
+			});
+		} catch (err) {
+			Emitter.emit('error', err);
+		}
+
+		async function runDefault() {
+			const defaults = await fill(5);
+			console.log('debug', `Dummy logger did not get stream. Pushing ${defaults.length} dummy records from defaults`);
+			defaults.forEach(data => {
+				promises.push(transform(data));
+				async function transform(value) {
+					const result = await convertRecord(value);
+					Emitter.emit('record', result);
+				}
+			});
+
+			async function fill(amount) {
+				return new Array(amount).fill({data: true});
+			}
+		}
 	}
 
-	return config.records.map((valid, index) => {
-		const record = new MarcRecord({
+	// If inputData is boolean false output record is failed record
+	async function convertRecord(inputData) {
+		const creationDate = moment().format('YYMMDD');
+		let record = new MarcRecord({
 			leader: '00000ngm a22005774i 4500',
 			fields: [
 				{
 					tag: '008',
-					value: '000000s2018    fi ||| g^    |    v|mul|c'
+					value: `${creationDate}    fi ||| g^    |    v|mul|c`
 				},
 				{
 					tag: '024',
-					subfields: [{code: 'a', value: `000000${index}`}]
+					subfields: [{code: 'a', value: '000000'}]
 				},
 				{
 					tag: '245',
-					subfields: [{code: 'a', value: `foobar${index}`}]
+					subfields: [{code: 'a', value: 'foobar'}]
 				}
 			]
 		});
 
-		if (valid) {
-			return record;
+		if (inputData === false) {
+			record.appendField({tag: 'FOO', value: 'bar'});
 		}
 
-		record.appendField({tag: 'FOO', value: 'bar'});
-		return record;
-	});
-
-	async function getConfig() {
-		const data = await getStream(stream);
-		const defaults = {
-			records: new Array(5).fill(true)
-		};
-
-		if (data) {
-			return {...defaults, ...JSON.parse(data)};
+		if (validate === true || fix === true) {
+			// Validation works only if inputData is type boolean: true or false.
+			return validator(record, validate, fix);
 		}
 
-		return defaults;
+		// No validation or fix = all succes!
+		return {failed: false, record: {...record}};
 	}
 }

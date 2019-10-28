@@ -26,8 +26,8 @@
 *
 */
 
-export default () => {
-	return async record => {
+export default (record, fix, validateFixes) => {
+	const validate = record => {
 		if (record.get(/^FOO$/).length > 0) {
 			return {
 				record,
@@ -39,7 +39,14 @@ export default () => {
 		return {
 			record,
 			valid: true,
-			report: []
+			report: [`Opts given to validator: fix: ${fix}, validateFixes: ${validateFixes}`]
 		};
+	};
+
+	const result = validate(record);
+	return {
+		record: result.record,
+		failed: result.valid === false,
+		messages: result.report
 	};
 };

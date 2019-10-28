@@ -1,6 +1,6 @@
 # Dummy record transformer for the Melinda record batch import system  [![Build Status](https://travis-ci.org/NatLibFi/melinda-record-import-transformer-dummy.svg)](https://travis-ci.org/NatLibFi/melinda-record-import-transformer-dummy) [![Test Coverage](https://codeclimate.com/github/NatLibFi/melinda-record-import-transformer-dummy/badges/coverage.svg)](https://codeclimate.com/github/NatLibFi/melinda-record-import-transformer-dummy/coverage)
 
-Dummy record transformer for the Melinda record batch import system. Consumes records as represented by Helmet's [Sierra ILS](https://sandbox.iii.com/iii/sierra-api/swagger/index.html)
+Dummy record transformer for the Melinda record batch import system.
 
 ## Usage
 Default options: validated: true and fix: true
